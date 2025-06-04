@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug mythread",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/test3/mythread",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}/test3",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "/usr/bin/gdb",
+      "preLaunchTask": "make"
+    }
+  ]
+}

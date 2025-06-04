@@ -1,8 +1,8 @@
-OPTS = -std=c++17 -pthread
+OPTS = -std=c++17 -pthread -g
 
 all: mythread
 
-mythread: mythread.cpp
+mythread: mythread.cpp threadpool.h
 	@g++ $(OPTS) $^ -o $@
 	@chmod +x $@
 	
