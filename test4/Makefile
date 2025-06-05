@@ -15,4 +15,4 @@ run: sqltest
 	@./sqltest
 
 clean:
-	rm -f sqltest
+	rm -f sqltest green_download.jpg 
