@@ -1,12 +1,12 @@
 OPTS = -std=c++17 -pthread -g
-INCLUDE = /usr/include/mysql
+INCLUDE = /usr/include/mysql 
 LIBS = -lmysqlclient
 
 
 
 all: sqltest
 
-sqltest: sqltest.cpp
+sqltest: sqltest.cpp connectionpool.h
 	@g++ $(OPTS) -I$(INCLUDE) $^ -o $@ $(LIBS)
 	@chmod +x $@
 	
