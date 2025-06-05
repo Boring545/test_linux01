@@ -129,6 +129,114 @@ namespace test4
 
         return 0;
     }
+    int mysql_write(MYSQL *sql, std::vector<char> &buffer)
+    {
+        const std::string SQL_INSERT_TBL_USR_03 = "insert into tbl_usr (u_name,u_gender,img) values('bob','man',?);";
+
+        auto stmt = mysql_stmt_init(sql);
+        if (stmt == nullptr)
+        {
+            return -1;
+        }
+        if (mysql_stmt_prepare(stmt, SQL_INSERT_TBL_USR_03.c_str(), SQL_INSERT_TBL_USR_03.size()))
+        {
+            mysql_stmt_close(stmt);
+            return -2;
+        }
+        MYSQL_BIND bind{0};
+        bind.buffer_type = MYSQL_TYPE_LONG_BLOB;
+        bind.buffer_length = buffer.size();
+        bool isnull = 0;
+        bind.is_null = &isnull;
+        unsigned long len = buffer.size();
+        bind.length = &len;
+        bind.buffer = nullptr;
+        // bind.buffer = buffer.data(); //对于小数据可以这么写，代替mysql_stmt_send_long_data
+
+        if (mysql_stmt_bind_param(stmt, &bind) != 0)
+        {
+            return -3;
+        }
+
+        size_t offset = 0;
+        const size_t chunk_size = 1024;
+        while(offset<buffer.size()){
+            size_t write_num=(buffer.size()-offset)>chunk_size?chunk_size:(buffer.size()-offset);
+            mysql_stmt_send_long_data(stmt,0,buffer.data()+offset,write_num);
+            offset+=write_num;
+        }
+
+
+        if (mysql_stmt_execute(stmt) != 0)
+        {
+            return -4;
+        }
+        mysql_stmt_close(stmt);
+        return 0;
+    }
+    int mysql_read(MYSQL *sql, std::vector<char> &buffer)
+    {
+        const std::string SQL_SELECT_TBL_USR_02 = "select img from tbl_usr where u_name='bob';";
+        auto stmt = mysql_stmt_init(sql);
+        if (stmt == nullptr)
+        {
+            return -1;
+        }
+        if (0 != mysql_stmt_prepare(stmt, SQL_SELECT_TBL_USR_02.data(), SQL_SELECT_TBL_USR_02.size()))
+        {
+            mysql_stmt_close(stmt);
+            return -2;
+        }
+
+        if (0 != mysql_stmt_execute(stmt))
+        {
+            mysql_stmt_close(stmt);
+            return -3;
+        }
+
+        MYSQL_BIND bind{0};
+        bind.buffer_type = MYSQL_TYPE_LONG_BLOB;
+
+        unsigned long len = 0;
+        bind.length = &len;
+        bind.buffer = nullptr;
+        bind.buffer_length = 0;
+
+        bool isnull = 0;
+        bind.is_null = &isnull;
+
+        if (mysql_stmt_bind_result(stmt, &bind) != 0)
+        {
+            mysql_stmt_close(stmt);
+            return -4;
+        }
+
+        buffer.clear();
+
+        int flag = mysql_stmt_fetch(stmt); // fetch这一步才把数据下载
+        if (flag != 0 && flag != MYSQL_DATA_TRUNCATED)
+        {
+            // MYSQL_DATA_TRUNCATED第一次mysql_stmt_fetch的时候
+            // 因为缓冲区为空，返回表示因为缓冲区过小，数据被“截断”了
+            mysql_stmt_close(stmt);
+            return -5; // 读取失败或者无数据
+        }
+        buffer.resize(len);
+        const size_t chunk_size = 1024; // 分块读取时缓冲区大小=1024byte
+        size_t offset = 0;
+
+        while (offset < (int)len)
+        {
+            size_t read_num = (len - offset) > chunk_size ? chunk_size : (len - offset);
+            bind.buffer_length = read_num; // 每次读缓冲区大小为1字节的内容
+            bind.buffer = buffer.data() + offset;
+            mysql_stmt_fetch_column(stmt, &bind, 0, offset);
+            offset += read_num;
+        }
+
+        mysql_stmt_close(stmt);
+        return len;
+    }
 }
 
 int main()
@@ -149,6 +257,20 @@ int main()
     test4::zjq_mysql_selcet(sql);
     test4::zjq_mysql_delete(sql);
     test4::zjq_mysql_selcet(sql);
+
+    std::string filename1 = "./green.jpg";
+    std::string filename2 = "./green_download.jpg";
+
+    std::vector<char> buf_w;
+    std::vector<char> buf_r;
+
+    test4::read_img(filename1, buf_w);
+    test4::mysql_write(sql, buf_w);
+
+    test4::zjq_mysql_selcet(sql);
+
+    test4::mysql_read(sql, buf_r);
+    test4::write_img(filename2, buf_r);
 
     return 0;
 }
