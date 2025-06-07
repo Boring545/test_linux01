@@ -11,7 +11,6 @@ sqltest: sqltest.cpp connectionpool.h
 	@chmod +x $@
 	
 run: sqltest
-	@echo "Running ./sqltest ..."
 	@./sqltest
 
 clean:

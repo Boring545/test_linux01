@@ -7,7 +7,6 @@ mythread: mythread.cpp threadpool.h
 	@chmod +x $@
 	
 run: mythread
-	@echo "Running ./mythread ..."
 	@./mythread
 
 clean:
