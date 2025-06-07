@@ -36,7 +36,7 @@ namespace test5
             id = get_random_id();
             flags = _flag;
             questions = _ques_num;
-            answer_rrs = 0;
+            answer_rrs = 0; //这个部分，还有下面必须初始化
             authority_rrs = 0;
             additional_rrs = 0;
 
