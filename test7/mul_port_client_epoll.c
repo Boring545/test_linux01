@@ -13,6 +13,9 @@
 #include <netdb.h>
 #include <fcntl.h>
 
+#include <sys/time.h>
+#include <unistd.h>
+
 
 #define MAX_BUFFER		128
 #define MAX_EPOLLSIZE	(384*1024)
