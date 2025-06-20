@@ -107,7 +107,20 @@ namespace test7
                     socklen_t ca_len = sizeof(struct sockaddr_in);
 
                     int clientfd = accept(listen_sockfd, (struct sockaddr *)&client_addr, &ca_len);
-
+                    if (clientfd < 0)
+                    {
+                        if (errno == EAGAIN)
+                        {
+                            // 没有连接，继续等待
+                            continue;
+                        }
+                        else
+                        {
+                            std::cerr << "accept failed" << std::endl;
+                            ;
+                            continue;
+                        }
+                    }
                     int origin_flags = fcntl(clientfd, F_GETFL, 0);
                     fcntl(clientfd, F_SETFL, origin_flags | O_NONBLOCK); // 设为非阻塞模式
 
@@ -180,16 +193,16 @@ namespace test7
 //  !我的ubuntu里没有nf_conntrack，sudo modprobe nf_conntrack安装 ，sudo rmmod nf_conntrack 卸载
 //  vim /etc/sysctl.conf 添加
 //  net.netfilter.nf_conntrack_max = 1048576
-//  net.ipv4.tcp_mem = 252144 524288 786432   
+//  net.ipv4.tcp_mem = 252144 524288 786432
 //  net.ipv4.tcp_rmem = 1024 1024 2048
 //  net.ipv4.tcp_wmem = 1024 1024 2097152
 //  fs.file-max = 1048576
 //  sudo sysctl -p  应用参数
 
-//参数解释：net.ipv4.tcp_mem  页大小4KB 
-// 第一个 TCP 内存页使用小于此值时不会触发内存压力控制机制
-// 第二个 TCP 内存页超过此值，内核开始尝试回收 TCP 内存
-// 第三个 TCP 内存页高于此值，内核会强制回收 TCP 套接字  786432*4KB=3GB
+// 参数解释：net.ipv4.tcp_mem  页大小4KB
+//  第一个 TCP 内存页使用小于此值时不会触发内存压力控制机制
+//  第二个 TCP 内存页超过此值，内核开始尝试回收 TCP 内存
+//  第三个 TCP 内存页高于此值，内核会强制回收 TCP 套接字  786432*4KB=3GB
 
 // net.ipv4.tcp_rmem  接受缓冲区控制
 // net.ipv4.tcp_wmem  发送缓冲区控制
@@ -202,7 +215,7 @@ namespace test7
 // 5.服务端内存跑满后，已经不接受新的连接了，且内存占用有略微减少
 // 因为当内存使用达到极限后，服务器可能关闭或拒绝一些连接，释放对应内存，即内存回收
 // 而在终止一个和服务端创建了很多连接的客户端后，服务端CPU占用飙升，因为断开连接需要资源
-// 
+//
 int main(int argc, char *argv[])
 {
     if (argc != 2)
@@ -212,6 +225,7 @@ int main(int argc, char *argv[])
     int port = atoi(argv[1]);
     std::vector<int> listen_fds;
 
+    // 注册[port, port+MAX_PORT)的端口用于监听
     for (size_t i = 0; i < MAX_PORT; i++)
     {
         if (port + i > 65535)
@@ -219,6 +233,11 @@ int main(int argc, char *argv[])
             break;
         }
         int listen_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        if (listen_sockfd < 0)
+        {
+            std::cerr << "socket failed" << std::endl;
+            continue;
+        }
 
         struct sockaddr_in server_addr;
         server_addr.sin_family = AF_INET;
@@ -246,6 +265,11 @@ int main(int argc, char *argv[])
                    { test7::epoll_server(listen_fds); });
 
     // th_pool.submit(test7::oneone_server, listen_sockfd);
+
+    while (true)
+    {
+        std::this_thread::sleep_for(std::chrono::seconds(60));
+    }
 
     return 0;
 }
