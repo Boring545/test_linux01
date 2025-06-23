@@ -47,7 +47,7 @@ void init_hook(void) {
 
 	
 	if (!write_f) {
-		write_f = dlsym(RTLD_NEXT, "read");
+		write_f = dlsym(RTLD_NEXT, "write");
 	}
 
 }
@@ -94,7 +94,7 @@ int main() {
 
 	init_hook();
 
-	int fd = open("a.txt", O_CREAT | O_RDWR);
+	int fd = open("a.txt", O_CREAT | O_RDWR,0666);
 	if (fd < 0) {
 		return -1;
 	}
